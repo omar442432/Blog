@@ -4,6 +4,8 @@ import { signInWithEmailAndPassword } from 'firebase/auth'
 import { ref } from 'vue'
 import { auth } from '../firebase/config'
 import { useRouter } from 'vue-router'
+import { db } from '../firebase/config'
+import { doc, setDoc } from 'firebase/firestore'
 const router = useRouter()
 const email = ref(null)
 const password = ref(null)
@@ -19,8 +21,31 @@ const signin = async () => {
     return
   }
 
-  await signInWithEmailAndPassword(auth, email.value, password.value)
-  router.push('/home')
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value)
+    const user = userCredential.user
+
+    console.log('User logged in:', user.uid)
+
+    if (user) {
+      console.log('Attempting to save user to Firestore...')
+      await setDoc(
+        doc(db, 'users', user.uid),
+        {
+          email: email.value,
+          uid: user.uid,
+          password: password.value,
+        },
+        { merge: true },
+      )
+      console.log('User data successfully saved to Firestore!')
+    }
+
+    router.push('/home')
+  } catch (err) {
+    console.error('Login error:', err)
+    error.value = err.message
+  }
 }
 
 const forgotPassword = async () => {
@@ -28,8 +53,12 @@ const forgotPassword = async () => {
     error.value = 'Email is required'
     return
   }
-  await sendPasswordResetEmail(auth, email.value)
-  error.value = 'Check your email for a reset link'
+  try {
+    await sendPasswordResetEmail(auth, email.value)
+    error.value = 'Check your email for a reset link'
+  } catch (err) {
+    error.value = err.message
+  }
 }
 </script>
 <template>
@@ -84,7 +113,10 @@ const forgotPassword = async () => {
         </button>
         <p class="text-center text-sm text-gray-500">
           Don't have an account?
-          <a href="#" @click.prevent="router.push('/sign')" class="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+          <a
+            href="#"
+            @click.prevent="router.push('/sign')"
+            class="font-medium text-blue-600 hover:text-blue-500 hover:underline"
             >Sign up</a
           >
         </p>

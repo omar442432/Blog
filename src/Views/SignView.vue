@@ -1,43 +1,55 @@
 <script setup>
-import { ref } from 'vue';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase/config';
-import { useRouter } from 'vue-router';
-const router = useRouter();
-const email = ref(null);
-const password = ref(null);
-const confirmPassword = ref(null);
-const error = ref(null);
+import { ref } from 'vue'
+import { createUserWithEmailAndPassword } from 'firebase/auth'
+import { auth } from '../firebase/config'
+import { useRouter } from 'vue-router'
+import { db } from '../firebase/config'
+import { doc, setDoc } from 'firebase/firestore'
+
+const router = useRouter()
+const email = ref(null)
+const password = ref(null)
+const confirmPassword = ref(null)
+const error = ref(null)
+
 const signup = async () => {
   if (password.value !== confirmPassword.value) {
-    error.value = 'Passwords must equal confirm password';
-    return;
+    error.value = 'Passwords must equal confirm password'
+    return
   }
   if (email.value == null) {
-    error.value = 'Email is required';
-    return;
+    error.value = 'Email is required'
+    return
   }
   if (password.value.length < 6) {
-    error.value = 'Password must be at least 6 characters';
-    return;
+    error.value = 'Password must be at least 6 characters'
+    return
   }
   if (password.value == null) {
-    error.value = 'Password is required';
-    return;
+    error.value = 'Password is required'
+    return
   }
 
- await createUserWithEmailAndPassword(auth, email.value, password.value);
- router.push('/home');
-
+  try {
+    const res = await createUserWithEmailAndPassword(auth, email.value, password.value)
+    if (res.user) {
+      await setDoc(doc(db, 'users', res.user.uid), {
+        email: email.value,
+        uid: res.user.uid,
+        password: password.value,
+      })
+    }
+    router.push('/home')
+  } catch (err) {
+    error.value = err.message
+  }
 }
-
 </script>
 <template>
   <div class="flex min-h-screen items-center justify-center bg-gray-50">
     <div class="w-full max-w-sm rounded-xl bg-white p-8 shadow-lg">
       <h2 class="mb-6 text-center text-2xl font-bold text-gray-900">Create Account</h2>
       <form @submit.prevent="signup" class="space-y-5">
-
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-700">Email</label>
           <input
@@ -66,7 +78,7 @@ const signup = async () => {
           />
         </div>
         <div class="text-red-500">
-           {{ error }}
+          {{ error }}
         </div>
 
         <button
@@ -77,7 +89,10 @@ const signup = async () => {
         </button>
         <p class="text-center text-sm text-gray-500">
           Already have an account?
-          <a href="#" @click.prevent="router.push('/login')" class="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+          <a
+            href="#"
+            @click.prevent="router.push('/login')"
+            class="font-medium text-blue-600 hover:text-blue-500 hover:underline"
             >Login</a
           >
         </p>
