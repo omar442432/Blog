@@ -77,7 +77,7 @@ const signup = async () => {
         </button>
         <p class="text-center text-sm text-gray-500">
           Already have an account?
-          <a href="#" class="font-medium text-blue-600 hover:text-blue-500 hover:underline"
+          <a href="#" @click.prevent="router.push('/login')" class="font-medium text-blue-600 hover:text-blue-500 hover:underline"
             >Login</a
           >
         </p>
